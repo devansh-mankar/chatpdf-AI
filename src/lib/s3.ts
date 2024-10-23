@@ -33,7 +33,7 @@ export async function uploadToS3(file: File) {
       })
       .promise();
 
-    await upload.then((data) => {
+    await upload.then(() => {
       console.log("successfully uploaded to s3!", file_key);
     });
 
@@ -41,7 +41,9 @@ export async function uploadToS3(file: File) {
       file_key,
       file_name: file.name,
     });
-  } catch (error) {}
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 export function getS3Url(file_key: string) {

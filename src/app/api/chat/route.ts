@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       prompt,
       ...messages.filter((message: Message) => message.role === "user"),
     ]),
-    onStepFinish: async (event) => {
+    onStepFinish: async () => {
       await db.insert(_messages).values({
         chatId,
         content: lastMessage.content,
