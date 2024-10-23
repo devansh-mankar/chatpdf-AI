@@ -2,7 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { convertToCoreMessages, streamText } from "ai";
 import { getContext } from "@/lib/context";
 import { db } from "@/lib/DB";
-import { chats } from "@/lib/DB/schema";
+import { chats, messages as _messages } from "@/lib/DB/schema";
 import { eq } from "drizzle-orm";
 import { Message } from "ai/react";
 import { NextResponse } from "next/server";
@@ -43,7 +43,21 @@ export async function POST(req: Request) {
       prompt,
       ...messages.filter((message: Message) => message.role === "user"),
     ]),
-    tools: {},
+    onStepFinish: async (event) => {
+      await db.insert(_messages).values({
+        chatId,
+        content: lastMessage.content,
+        role: "user",
+      });
+    },
+    onFinish: async (completion) => {
+      // onFinish()
+      await db.insert(_messages).values({
+        chatId,
+        content: completion.text,
+        role: "system",
+      });
+    },
   });
 
   return result.toDataStreamResponse();
