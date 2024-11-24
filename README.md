@@ -16,4 +16,5 @@ File Storage: AWS S3 is used for secure file handling.
 AI Integration: OpenAI's API and Vercel AI SDK enable advanced text embeddings and chat functionality.
 Deployment: Hosted on Vercel for seamless scalability and performance.
 
-<img width="1710" alt="Screenshot 2024-11-25 at 02 20 36" src="https://github.com/user-attachments/assets/7d38a9b8-0e98-4f9c-aeba-970c48c6d111">
+<img width="1707" alt="Screenshot 2024-11-25 at 02 28 25" src="https://github.com/user-attachments/assets/9e23bccf-1cd8-48b7-9d55-84d59a009c63">
+
