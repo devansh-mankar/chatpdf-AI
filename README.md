@@ -1,4 +1,4 @@
-<img width="1710" alt="Screenshot 2024-11-25 at 02 20 36" src="https://github.com/user-attachments/assets/f3ee98ac-8d1c-4227-92ce-3ccc34f98b22">ChatPDF-AI
+
 
 ChatPDF-AI is a web application that combines document management and AI-powered chat functionalities. Users can upload PDF files, view previously uploaded files, and interact with their content through an AI chat interface. The application uses cutting-edge technologies for seamless file handling, vector storage, and conversational AI.
 
