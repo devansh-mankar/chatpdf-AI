@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+.clip-path-user {
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+.clip-path-ai {
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

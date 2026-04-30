@@ -30,7 +30,7 @@ export async function loadS3IntoPinecone(file_Key: string) {
   console.log(loader);
 
   const pages = (await loader.load()) as PDFPage[];
-  // console.log(pages);
+  console.log(pages);
 
   const documents = await Promise.all(pages.map(prepareDocument));
   //console.log(documents);

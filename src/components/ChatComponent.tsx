@@ -15,56 +15,68 @@ const ChatComponent = ({ chatId }: Props) => {
   const { data, isLoading } = useQuery({
     queryKey: ["chat", chatId],
     queryFn: async () => {
-      const response = await axios.post<Message[]>("/api/get-messages", {
-        chatId,
-      });
-      //console.log(data);
-      return response.data;
+      const res = await axios.post<Message[]>("/api/get-messages", { chatId });
+      return res.data;
     },
   });
 
-  const { input, handleSubmit, handleInputChange, messages } = useChat({
-    api: "/api/chat",
-    body: {
-      chatId,
-    },
-    initialMessages: data || [],
-  });
+  // 🔑 Only initialize ONCE
+  const [initialMessages, setInitialMessages] = React.useState<Message[] | null>(null);
 
   React.useEffect(() => {
-    const messageContainer = document.getElementById("message-container");
-    if (messageContainer) {
-      messageContainer.scrollTo({
-        top: messageContainer.scrollHeight,
-        behavior: "smooth",
-      });
+    if (data && !initialMessages) {
+      setInitialMessages(data);
     }
+  }, [data, initialMessages]);
+
+  const {
+    input,
+    handleSubmit,
+    handleInputChange,
+    messages,
+  } = useChat({
+    api: "/api/chat",
+    body: { chatId },
+    initialMessages: initialMessages ?? [],
+  });
+
+  const bottomRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // ✅ Proper loading state
+  if (!initialMessages) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-400 text-sm">Loading chat…</p>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="relative max-h-screen overflow-scroll"
-      id="message-container"
-    >
-      {/*header*/}
-      <div className="sticky top-0 inset-x-0 p-2 bg-white h-fit">
-        <h3 className="text-xl font-bold">Chat</h3>
+    <div className="flex flex-col h-full bg-gray-50">
+      
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-2">
+        <div className="max-w-3xl mx-auto w-full">
+          <MessageList messages={messages} isLoading={isLoading} />
+          <div ref={bottomRef} />
+        </div>
       </div>
 
-      {/*message list*/}
-      <MessageList messages={messages} isLoading={isLoading} />
-      <form
-        onSubmit={handleSubmit}
-        className="sticky bottom-0 inset-x-0 px-2 py-4 bg-white"
-      >
-        <div className="flex">
+      {/* Input */}
+      <form onSubmit={handleSubmit} className="border-t bg-white px-4 py-3">
+        <div className="flex items-center gap-2 max-w-3xl mx-auto">
           <Input
             value={input}
             onChange={handleInputChange}
-            placeholder="ask any question..."
-            className="w-full"
+            placeholder="Ask anything..."
+            className="flex-1 rounded-full px-4 py-2"
           />
-          <Button className="bg-blue-600 ml-2">
-            <Send className="h-4 w-4" />
+          <Button className="bg-blue-600 rounded-full w-10 h-10 p-0">
+            <Send className="h-4 w-4 text-white" />
           </Button>
         </div>
       </form>

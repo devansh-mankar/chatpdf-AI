@@ -1,25 +1,75 @@
 import { openai } from "@ai-sdk/openai";
-import { convertToCoreMessages, streamText } from "ai";
+import { convertToCoreMessages, streamText, generateText } from "ai";
 import { getContext } from "@/lib/context";
 import { db } from "@/lib/DB";
 import { chats, messages as _messages } from "@/lib/DB/schema";
 import { eq } from "drizzle-orm";
-import { Message } from "ai/react";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const { messages, chatId } = await req.json();
-  const _chats = await db.select().from(chats).where(eq(chats.id, chatId));
+  try {
+    const body = await req.json();
 
-  if (_chats.length != 1) {
-    return NextResponse.json({ error: "chat not found" }, { status: 400 });
-  }
+    if (!body?.messages || !body?.chatId) {
+      return NextResponse.json({ error: "invalid body" }, { status: 400 });
+    }
 
-  const fileKey = _chats[0].fileKey;
-  const lastMessage = messages[messages.length - 1];
-  const context = await getContext(lastMessage.content, fileKey);
+    const messages = body.messages;
+    const chatId = Number(body.chatId);
 
-  const prompt = {
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json({ error: "no messages" }, { status: 400 });
+    }
+
+    const chat = await db
+      .select()
+      .from(chats)
+      .where(eq(chats.id, chatId));
+
+    if (chat.length !== 1) {
+      return NextResponse.json({ error: "chat not found" }, { status: 400 });
+    }
+
+    const fileKey = chat[0].fileKey;
+    const lastMessage = messages[messages.length - 1];
+
+    // 🔥 STRONG QUERY REWRITE
+    let improvedQuery = lastMessage.content;
+
+    try {
+      const rewrite = await generateText({
+        model: openai("gpt-4o-mini"),
+        prompt: `
+Convert the user query into a detailed semantic search query for a PDF.
+
+User query: "${lastMessage.content}"
+
+If vague, expand it to include:
+- summary
+- key details
+- names
+- titles
+`,
+        maxTokens: 100,
+      });
+
+      if (rewrite.text) improvedQuery = rewrite.text;
+    } catch {}
+
+    // 🔁 RETRY CONTEXT (handles async indexing delay)
+    let context = "";
+
+    for (let i = 0; i < 3; i++) {
+      try {
+        context = await getContext(improvedQuery, fileKey);
+        if (context && context.length > 50) break;
+      } catch {}
+
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    // 🔥 FALLBACK: if still weak context
+    const systemPrompt = {
     role: "system",
     content: `AI assistant is a brand new, powerful, human-like artificial intelligence.
       The traits of AI include expert knowledge, helpfulness, cleverness, and articulateness.
@@ -37,28 +87,43 @@ export async function POST(req: Request) {
       `,
   };
 
-  const result = await streamText({
-    model: openai("gpt-4-turbo"),
-    messages: convertToCoreMessages([
-      prompt,
-      ...messages.filter((message: Message) => message.role === "user"),
-    ]),
-    onStepFinish: async () => {
-      await db.insert(_messages).values({
-        chatId,
-        content: lastMessage.content,
-        role: "user",
-      });
-    },
-    onFinish: async (completion) => {
-      // onFinish()
-      await db.insert(_messages).values({
-        chatId,
-        content: completion.text,
-        role: "system",
-      });
-    },
-  });
+    // 💾 Save user message early
+    await db.insert(_messages).values({
+      chatId,
+      content: lastMessage.content,
+      role: "user",
+    });
 
-  return result.toDataStreamResponse();
+    const safeMessages = messages.filter(
+      (m: any) => m?.role && m?.content
+    );
+
+    const result = await streamText({
+      model: openai("gpt-4o-mini"),
+      messages: convertToCoreMessages([
+        systemPrompt,
+        ...safeMessages,
+      ]),
+      temperature: 0.3,
+      maxTokens: 500,
+
+      onFinish: async (completion) => {
+        try {
+          await db.insert(_messages).values({
+            chatId,
+            content: completion.text,
+            role: "system",
+          });
+        } catch {}
+      },
+    });
+
+    return result.toDataStreamResponse();
+  } catch (err) {
+    console.error("CHAT ERROR:", err);
+    return NextResponse.json(
+      { error: "internal server error" },
+      { status: 500 }
+    );
+  }
 }
