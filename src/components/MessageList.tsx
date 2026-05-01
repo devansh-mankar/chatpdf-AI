@@ -9,6 +9,17 @@ type Props = {
   messages: Message[];
 };
 
+const formatAssistantText = (text: string) => {
+  return text
+    .replace(/\\\((.*?)\\\)/g, "$1")
+    .replace(/\\\[(.*?)\\\]/gs, "$1")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/^\s*[-*]\s+/gm, "• ")
+    .replace(/^\s*\d+\.\s+/gm, (match) => match)
+    .trim();
+};
+
 const MessageList = ({ messages, isLoading }: Props) => {
   if (isLoading) {
     return (
@@ -77,7 +88,7 @@ const MessageList = ({ messages, isLoading }: Props) => {
                   boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
                 }}
               >
-                <p className="whitespace-pre-wrap">{message.content}</p>
+                 <p className="whitespace-pre-wrap">{isUser ? message.content : formatAssistantText(message.content)}</p>
               </div>
             </div>
           </div>

@@ -13,7 +13,7 @@ export async function getMatchesFromEmbeddings(
     const pineconeIndex = await client.index("chatpdf-ai");
     const namespace = pineconeIndex.namespace(convertToAscii(fileKey));
     const queryResult = await namespace.query({
-      topK: 5,
+      topK: 8,
       vector: embeddings,
       includeMetadata: true,
     });
@@ -28,8 +28,8 @@ export async function getContext(query: string, fileKey: string) {
   const queryEmbeddings = await getEmbeddings(query);
   const matches = await getMatchesFromEmbeddings(queryEmbeddings, fileKey);
 
-  const qualifyingDocs = matches.filter(
-    (match) => match.score && match.score > 0.7
+  const strictQualifyingDocs = matches.filter(
+    (match) => match.score && match.score > 0.55
   );
 
   type metaData = {
@@ -37,6 +37,13 @@ export async function getContext(query: string, fileKey: string) {
     pageNumber: number;
   };
 
-  const docs = qualifyingDocs.map((match) => (match.metadata as metaData).text);
-  return docs.join("\n").substring(0, 3000);
+  // Fallback: for broad summary questions ("what is this PDF about?")
+  // semantic scores can be lower; still return top chunks instead of empty context.
+  const docs =
+    strictQualifyingDocs.length > 0
+      ? strictQualifyingDocs
+      : matches.filter((match) => Boolean(match.metadata?.text)).slice(0, 5);
+
+  const context = docs.map((match) => (match.metadata as metaData).text).join("\n");
+  return context.substring(0, 6000);
 }

@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { convertToCoreMessages, streamText, generateText } from "ai";
+import { convertToCoreMessages, streamText } from "ai";
 import { getContext } from "@/lib/context";
 import { db } from "@/lib/DB";
 import { chats, messages as _messages } from "@/lib/DB/schema";
@@ -33,45 +33,16 @@ export async function POST(req: Request) {
     const fileKey = chat[0].fileKey;
     const lastMessage = messages[messages.length - 1];
 
-    // 🔥 STRONG QUERY REWRITE
-    let improvedQuery = lastMessage.content;
-
-    try {
-      const rewrite = await generateText({
-        model: openai("gpt-4o-mini"),
-        prompt: `
-Convert the user query into a detailed semantic search query for a PDF.
-
-User query: "${lastMessage.content}"
-
-If vague, expand it to include:
-- summary
-- key details
-- names
-- titles
-`,
-        maxTokens: 100,
-      });
-
-      if (rewrite.text) improvedQuery = rewrite.text;
-    } catch {}
-
-    // 🔁 RETRY CONTEXT (handles async indexing delay)
+    // ⚡ Fast retrieval path (single context fetch to reduce first-response latency)
     let context = "";
 
-    for (let i = 0; i < 3; i++) {
-      try {
-        context = await getContext(improvedQuery, fileKey);
-        if (context && context.length > 50) break;
-      } catch {}
+    try {
+      context = await getContext(lastMessage.content, fileKey);
+    } catch {}
 
-      await new Promise((r) => setTimeout(r, 500));
-    }
-
-    // 🔥 FALLBACK: if still weak context
     const systemPrompt = {
-    role: "system",
-    content: `AI assistant is a brand new, powerful, human-like artificial intelligence.
+      role: "system",
+      content: `AI assistant is a brand new, powerful, human-like artificial intelligence.
       The traits of AI include expert knowledge, helpfulness, cleverness, and articulateness.
       AI is a well-behaved and well-mannered individual.
       AI is always friendly, kind, and inspiring, and he is eager to provide vivid and thoughtful responses to the user.
@@ -84,10 +55,10 @@ If vague, expand it to include:
       If the context does not provide the answer to question, the AI assistant will say, "I'm sorry, but I don't know the answer to that question".
       AI assistant will not apologize for previous responses, but instead will indicated new information was gained.
       AI assistant will not invent anything that is not drawn directly from the context.
+      AI assistant must respond in clean plain text with simple bullets and no markdown symbols, no LaTeX wrappers, and no escaped characters.
       `,
-  };
+    };
 
-    // 💾 Save user message early
     await db.insert(_messages).values({
       chatId,
       content: lastMessage.content,

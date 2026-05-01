@@ -4,6 +4,7 @@ import { db } from "@/lib/DB";
 import { chats } from "@/lib/DB/schema";
 import { getS3Url } from "@/lib/s3";
 import { auth } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
 
 export async function POST(req: Request) {
   try {
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
     const chat_id = chat[0].insertedId;
 
     loadS3IntoPinecone(file_key).catch(() => {});
+    revalidatePath("/");
 
     return NextResponse.json({ chat_id }, { status: 200 });
   } catch {

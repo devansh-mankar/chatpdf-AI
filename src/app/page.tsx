@@ -2,89 +2,135 @@ import { Button } from "@/components/ui/button";
 import { UserButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { LogIn } from "lucide-react";
+import { ArrowRight, LogIn, Sparkles } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
+import { db } from "@/lib/DB";
+import { chats } from "@/lib/DB/schema";
+import { desc, eq } from "drizzle-orm";
 
 export default async function Home() {
   const { userId } = await auth();
   const isAuth = !!userId;
 
-  return (
-    <div className="relative w-screen min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-100">
+  const userChats = isAuth
+    ? await db
+        .select({ id: chats.id, pdfName: chats.pdfName })
+        .from(chats)
+        .where(eq(chats.userId, userId!))
+        .orderBy(desc(chats.id))
+        .limit(3)
+    : [];
 
-      {/* 🌈 Background Glow */}
-      <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-blue-300/40 blur-[120px] rounded-full" />
-      <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-purple-300/40 blur-[120px] rounded-full" />
+  const latestChatHref = userChats[0] ? `/chat/${userChats[0].id}` : null;
 
-      {/* 🔝 Top Bar */}
-      <div className="absolute top-6 right-6 z-20">
-        <UserButton afterSignOutUrl="/" />
-      </div>
-
-      {/* 🧠 Hero Section */}
-      <div className="flex flex-col items-center justify-center text-center px-6 py-24">
-        
-        <h1 className="text-6xl font-bold tracking-tight text-gray-900">
-          Chat with any PDF
-        </h1>
-
-        <p className="mt-6 text-gray-600 text-lg max-w-xl leading-relaxed">
-          Instantly understand documents, research papers, and reports with AI-powered conversations.
-        </p>
-
-        {/* 🚀 Upload Section */}
-        <div className="w-full max-w-2xl mt-12">
-          {isAuth ? (
-            <div className="bg-white/80 backdrop-blur-xl border border-gray-200 rounded-3xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300">
-              <FileUpload />
-            </div>
-          ) : (
-            <Link href="/sign-in">
-              <Button className="px-6 py-3 text-base shadow-lg mt-6">
-                Login to get started
-                <LogIn className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          )}
-        </div>
-
-        {/* CTA */}
-        {isAuth && (
-          <div className="mt-6">
-            <Link href="/dashboard">
-              <Button variant="secondary" className="px-5 py-2">
-                Go to Chats
-              </Button>
-            </Link>
-          </div>
-        )}
-      </div>
-
-      {/* 💎 Features Section */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 pb-24 grid md:grid-cols-3 gap-6">
-        
-        <div className="bg-white/70 backdrop-blur-lg border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
-          <h3 className="font-semibold text-gray-900">⚡ Instant Answers</h3>
-          <p className="text-sm text-gray-600 mt-2">
-            Ask questions and get accurate responses in seconds.
-          </p>
-        </div>
-
-        <div className="bg-white/70 backdrop-blur-lg border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
-          <h3 className="font-semibold text-gray-900">📄 Smart Summaries</h3>
-          <p className="text-sm text-gray-600 mt-2">
-            Quickly understand long PDFs without reading everything.
-          </p>
-        </div>
-
-        <div className="bg-white/70 backdrop-blur-lg border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
-          <h3 className="font-semibold text-gray-900">🧠 AI Powered</h3>
-          <p className="text-sm text-gray-600 mt-2">
-            Built with advanced AI to give contextual answers.
-          </p>
-        </div>
-
-      </div>
+ return (
+  <div className="relative min-h-screen bg-gradient-to-b from-white to-slate-50 text-slate-900 flex flex-col">
+    
+    {/* subtle background accents */}
+    <div className="pointer-events-none absolute inset-0">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.15),transparent_40%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgba(168,85,247,0.15),transparent_40%)]" />
     </div>
-  );
+
+    {/* HEADER */}
+    <header className="relative z-20 mx-auto w-full max-w-6xl flex items-center justify-between px-6 py-6">
+      <div className="flex items-center gap-2 text-sm font-semibold tracking-wide text-slate-700">
+        <Sparkles className="h-4 w-4 text-blue-500" />
+        ChatPDF AI
+      </div>
+
+      {isAuth ? (
+        <UserButton afterSignOutUrl="/sign-in" />
+      ) : (
+        <Link href="/sign-in">
+          <Button className="bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 shadow-sm">
+            Sign in
+          </Button>
+        </Link>
+      )}
+    </header>
+
+    {/* MAIN */}
+    <main className="relative z-10 flex-1 flex items-center">
+      <div className="mx-auto w-full max-w-6xl px-6 grid lg:grid-cols-2 gap-16 items-center">
+        
+        {/* LEFT */}
+        <section className="space-y-8">
+          <h1 className="text-5xl sm:text-5xl font-bold leading-tight tracking-tight text-slate-900">
+            Chat with your PDFs
+            <span className="block bg-gradient-to-r from-blue-600 via-cyan-500 to-violet-500 bg-clip-text text-transparent">
+              fast, smart, effortless
+            </span>
+          </h1>
+
+          <p className="text-lg text-slate-600 max-w-lg">
+            Upload documents, ask questions, and get precise answers instantly.
+            Designed for clarity and speed.
+          </p>
+
+          {/* CTA */}
+          <div className="flex items-center gap-4">
+            {isAuth ? (
+              latestChatHref && (
+                <Link href={latestChatHref}>
+                  <Button className="h-12 px-6 rounded-xl bg-blue-600 text-white font-medium shadow-md hover:bg-blue-500 transition">
+                    Continue Chat
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              )
+            ) : (
+              <Link href="/sign-in">
+                <Button className="h-12 px-6 rounded-xl bg-blue-600 text-white font-medium shadow-md hover:bg-blue-500 transition">
+                  Get Started
+                  <LogIn className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            )}
+
+          </div>
+
+          {/* RECENT CHATS */}
+          {isAuth && userChats.length > 0 && (
+            <div className="mt-6 space-y-2">
+         {userChats.map((chat) => (
+    <Link
+      key={chat.id}
+      href={`/chat/${chat.id}`}
+      className="block px-4 py-3 rounded-xl bg-white/60 border border-white/40 shadow-md
+      hover:bg-white/80 hover:shadow-lg transition"
+    >
+      <span className="block truncate" title={chat.pdfName}>
+        {chat.pdfName}
+      </span>
+    </Link>
+  ))}
+</div>
+          )}
+        </section>
+
+        {/* RIGHT */}
+        <section className="flex justify-center">
+          <div className="w-full max-w-md ">
+            
+            {isAuth ? (
+              <FileUpload />
+            ) : (
+              <div className="text-center space-y-4">
+                <p className="text-slate-900 font-medium text-lg">
+                  Upload your first PDF
+                </p>
+                <p className="text-slate-500 text-sm">
+                  Sign in to start chatting with your documents instantly.
+                </p>
+              </div>
+            )}
+
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+);
 }

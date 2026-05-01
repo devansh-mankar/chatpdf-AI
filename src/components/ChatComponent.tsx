@@ -12,7 +12,7 @@ import { Message } from "ai";
 type Props = { chatId: number };
 
 const ChatComponent = ({ chatId }: Props) => {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetched } = useQuery({
     queryKey: ["chat", chatId],
     queryFn: async () => {
       const res = await axios.post<Message[]>("/api/get-messages", { chatId });
@@ -20,25 +20,25 @@ const ChatComponent = ({ chatId }: Props) => {
     },
   });
 
-  // 🔑 Only initialize ONCE
-  const [initialMessages, setInitialMessages] = React.useState<Message[] | null>(null);
-
-  React.useEffect(() => {
-    if (data && !initialMessages) {
-      setInitialMessages(data);
-    }
-  }, [data, initialMessages]);
-
   const {
     input,
+    setInput,
     handleSubmit,
     handleInputChange,
     messages,
+    setMessages,
   } = useChat({
     api: "/api/chat",
+    id: `chat-${chatId}`,
     body: { chatId },
-    initialMessages: initialMessages ?? [],
+    initialMessages: [],
   });
+
+  React.useEffect(() => {
+    if (!isFetched) return;
+    setMessages(data ?? []);
+    setInput("");
+  }, [chatId, data, isFetched, setInput, setMessages]);
 
   const bottomRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -46,8 +46,7 @@ const ChatComponent = ({ chatId }: Props) => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // ✅ Proper loading state
-  if (!initialMessages) {
+  if (isLoading && !isFetched) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-gray-400 text-sm">Loading chat…</p>
@@ -57,8 +56,6 @@ const ChatComponent = ({ chatId }: Props) => {
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-2">
         <div className="max-w-3xl mx-auto w-full">
           <MessageList messages={messages} isLoading={isLoading} />
@@ -66,7 +63,6 @@ const ChatComponent = ({ chatId }: Props) => {
         </div>
       </div>
 
-      {/* Input */}
       <form onSubmit={handleSubmit} className="border-t bg-white px-4 py-3">
         <div className="flex items-center gap-2 max-w-3xl mx-auto">
           <Input

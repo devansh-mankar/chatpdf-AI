@@ -1,4 +1,5 @@
 "use client";
+
 import React from "react";
 import { useDropzone } from "react-dropzone";
 import { Inbox, Loader2 } from "lucide-react";
@@ -45,6 +46,7 @@ const FileUpload = () => {
           },
         });
       } catch (err) {
+        console.error(err);
         toast.error("Upload failed");
       } finally {
         setUploading(false);
@@ -55,23 +57,46 @@ const FileUpload = () => {
   return (
     <div
       {...getRootProps()}
-      className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 cursor-pointer transition-all
-      ${isDragActive ? "border-blue-500 bg-blue-50 scale-[1.02]" : "border-gray-300 bg-gray-50 hover:bg-gray-100"}`}
+      className={`
+        relative flex flex-col items-center justify-center
+        rounded-3xl px-8 py-12 cursor-pointer
+        transition-all duration-300
+
+        bg-white/60 backdrop-blur-xl
+        border border-white/40
+        shadow-[0_10px_40px_rgba(0,0,0,0.08)]
+
+        hover:shadow-[0_20px_60px_rgba(0,0,0,0.12)]
+        hover:-translate-y-1
+
+        ${isDragActive ? "border-blue-400 bg-blue-50/60 scale-[1.02]" : ""}
+      `}
     >
       <input {...getInputProps()} />
 
       {uploading || isPending ? (
         <>
           <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-          <p className="mt-3 text-sm text-gray-500">Uploading...</p>
+          <p className="mt-4 text-sm text-slate-600 font-medium">
+            Uploading your PDF...
+          </p>
         </>
       ) : (
         <>
-          <Inbox className="w-10 h-10 text-blue-500" />
-          <p className="mt-3 text-sm text-gray-600">
-            Drag & drop your PDF here
+          {/* icon container (clean, no inner shadow nonsense) */}
+          <div className="p-4 rounded-2xl bg-blue-100/60">
+            <Inbox className="w-8 h-8 text-blue-600" />
+          </div>
+
+          <p className="mt-5 text-base font-medium text-slate-800">
+            Drop your PDF here
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+
+          <p className="text-sm text-slate-500 mt-1">
+            or click to browse files
+          </p>
+
+          <p className="text-xs text-slate-400 mt-2">
             Max file size: 10MB
           </p>
         </>
