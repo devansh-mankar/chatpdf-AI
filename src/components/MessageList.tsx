@@ -3,12 +3,14 @@ import React from "react";
 import { Message } from "ai/react";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { messages } from "@/lib/DB/schema";
 
 type Props = {
   isLoading: boolean;
   messages: Message[];
 };
 
+//console.log(messages);
 const formatAssistantText = (text: string) => {
   return text
     .replace(/\\\((.*?)\\\)/g, "$1")

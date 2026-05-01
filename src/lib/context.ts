@@ -37,13 +37,12 @@ export async function getContext(query: string, fileKey: string) {
     pageNumber: number;
   };
 
-  // Fallback: for broad summary questions ("what is this PDF about?")
-  // semantic scores can be lower; still return top chunks instead of empty context.
   const docs =
     strictQualifyingDocs.length > 0
       ? strictQualifyingDocs
       : matches.filter((match) => Boolean(match.metadata?.text)).slice(0, 5);
 
   const context = docs.map((match) => (match.metadata as metaData).text).join("\n");
+  console.log(context);
   return context.substring(0, 6000);
 }

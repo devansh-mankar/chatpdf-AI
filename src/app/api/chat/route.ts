@@ -36,9 +36,16 @@ export async function POST(req: Request) {
     // ⚡ Fast retrieval path (single context fetch to reduce first-response latency)
     let context = "";
 
-    try {
-      context = await getContext(lastMessage.content, fileKey);
-    } catch {}
+try {
+  context = await getContext(lastMessage.content, fileKey);
+
+  if (!context || context.trim().length < 80) {
+    context = await getContext(
+      "summarize this document and list its main topics, sections, and key points",
+      fileKey
+    );
+  }
+} catch {}
 
     const systemPrompt = {
       role: "system",

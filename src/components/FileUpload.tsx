@@ -83,7 +83,7 @@ const FileUpload = () => {
         </>
       ) : (
         <>
-          {/* icon container (clean, no inner shadow nonsense) */}
+          
           <div className="p-4 rounded-2xl bg-blue-100/60">
             <Inbox className="w-8 h-8 text-blue-600" />
           </div>

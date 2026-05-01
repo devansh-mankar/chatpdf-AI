@@ -21,19 +21,17 @@ type PDFPage = {
 
 export async function loadS3IntoPinecone(file_Key: string) {
   //obtaining the pdf
-  console.log(`downloading s3 into file system!`);
+  //console.log(`downloading s3 into file system!`);
   const file_name = await downloadFromS3(file_Key);
   if (!file_name) {
     throw new Error("couldn't download from s3");
   }
   const loader = new PDFLoader(file_name);
-  console.log(loader);
-
+  
   const pages = (await loader.load()) as PDFPage[];
-  console.log(pages);
 
   const documents = await Promise.all(pages.map(prepareDocument));
-  //console.log(documents);
+  console.log(documents);
 
   const vectors = await Promise.all(documents.flat().map(embedDocument));
   console.log(`Number of vectors generated: ${vectors.length}`);
@@ -91,6 +89,5 @@ async function prepareDocument(page: PDFPage) {
     }),
   ]);
 
-  //console.log(docs);
   return docs;
 }

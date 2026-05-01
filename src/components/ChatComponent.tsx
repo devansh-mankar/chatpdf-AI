@@ -12,12 +12,13 @@ import { Message } from "ai";
 type Props = { chatId: number };
 
 const ChatComponent = ({ chatId }: Props) => {
-  const { data, isLoading, isFetched } = useQuery({
+  const { data, isLoading, isFetched, isFetching } = useQuery({
     queryKey: ["chat", chatId],
     queryFn: async () => {
       const res = await axios.post<Message[]>("/api/get-messages", { chatId });
       return res.data;
     },
+    refetchOnMount: "always",
   });
 
   const {
@@ -34,11 +35,17 @@ const ChatComponent = ({ chatId }: Props) => {
     initialMessages: [],
   });
 
+  // Clear previous chat instantly when switching tabs/chats
   React.useEffect(() => {
-    if (!isFetched) return;
-    setMessages(data ?? []);
+    setMessages([]);
     setInput("");
-  }, [chatId, data, isFetched, setInput, setMessages]);
+  }, [chatId, setInput, setMessages]);
+
+  // Hydrate with server messages for the active chat once fetch completes
+  React.useEffect(() => {
+    if (!isFetched || isFetching) return;
+    setMessages(data ?? []);
+  }, [data, isFetched, isFetching, setMessages]);
 
   const bottomRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -58,7 +65,7 @@ const ChatComponent = ({ chatId }: Props) => {
     <div className="flex flex-col h-full bg-gray-50">
       <div className="flex-1 overflow-y-auto px-2">
         <div className="max-w-3xl mx-auto w-full">
-          <MessageList messages={messages} isLoading={isLoading} />
+          <MessageList messages={messages} isLoading={isLoading && !messages.length} />
           <div ref={bottomRef} />
         </div>
       </div>
